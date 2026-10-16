@@ -1,0 +1,71 @@
+/*
+ * Ranqa overrides for the vendored LiquidLens material.
+ * Import after liquid-glass.css. Never edit the vendored files.
+ */
+
+/*
+ * Fixed specular light. The engine writes --lg-lx / --lg-ly / --lg-edge on
+ * <html> on every pointermove, which makes every glass highlight follow the
+ * cursor. Declaring them on the element wins over the inherited value, so the
+ * highlight and rim stay put (top-left light, the tokens.css defaults).
+ */
+.lg-glass {
+  --lg-lx: 32%;
+  --lg-ly: 12%;
+  --lg-edge: 140deg;
+}
+
+/*
+ * Registered so they can transition (unregistered custom properties snap).
+ * --lg-spec keeps the core's default; --glass-glow is the press glow spread.
+ */
+@property --lg-spec {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0.9;
+}
+
+@property --glass-glow {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 0%;
+}
+
+/*
+ * Motion-driven glass (useGlassMotion), modelled on iOS 26 interactive glass:
+ * - Rest: visually quiet. No floating specular blob, only the top and bottom
+ *   edges faintly lit (rim gradient running vertically).
+ * - Press: the material "illuminates from within": the glow starts under the
+ *   fingertip and spreads through the whole element while the rim brightens.
+ * Motion writes `transform` every frame, so the core's transform transition
+ * must be off or it lags the gesture.
+ */
+.lg-motion {
+  --lg-edge: 180deg;
+  --lg-spec: 0.55;
+  transition: box-shadow var(--lg-dur) ease, background 0.3s ease, --lg-spec 0.35s ease-out;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lg-motion[data-pressed] {
+  --lg-spec: 1;
+  transition: box-shadow var(--lg-dur) ease, background 0.3s ease, --lg-spec 0.12s ease-out;
+}
+
+/* Inner glow layer: hidden at rest, replaces the core's pointer-tracked blob. */
+.lg-motion::after {
+  background: radial-gradient(circle at var(--glass-press-x, 50%) var(--glass-press-y, 50%),
+      rgba(255, 255, 255, 0.34) 0%,
+      rgba(255, 255, 255, 0.18) var(--glass-glow),
+      rgba(255, 255, 255, 0.06) calc(var(--glass-glow) + 40%));
+  opacity: 0;
+  transition: opacity 0.4s ease-out, --glass-glow 0.4s ease-out;
+}
+
+.lg-motion[data-pressed]::after {
+  --glass-glow: 140%;
+  opacity: 1;
+  transition: opacity 0.12s ease-out, --glass-glow 0.5s var(--lg-ease);
+}
